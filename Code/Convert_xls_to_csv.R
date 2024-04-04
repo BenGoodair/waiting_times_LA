@@ -6,6 +6,7 @@ pacman::p_load(devtools, dplyr, tidyverse, tidyr, stringr,  curl, plm, readxl, z
 file_vector <- list.files(path = "C:/Users/benjamin.goodair/OneDrive - Nexus365/Documents/GitHub/waiting_times_LA/Data/Raw_Data/2015")
 #file_vector %>% head()
 xl_list <- file_vector[grepl(".xls",file_vector)]
+write.csv(xl_list, "C:/Users/benjamin.goodair/OneDrive - Nexus365/Documents/GitHub/waiting_times_LA/Data/Raw_Data/2015/csvs/xl_list.csv")
 
 
 for (i in 1:18) {
@@ -19,6 +20,7 @@ for (i in 1:18) {
 file_vector <- list.files(path = "C:/Users/benjamin.goodair/OneDrive - Nexus365/Documents/GitHub/waiting_times_LA/Data/Raw_Data/2010")
 #file_vector %>% head()
 xl_list <- file_vector[grepl(".xls",file_vector)]
+write.csv(xl_list, "C:/Users/benjamin.goodair/OneDrive - Nexus365/Documents/GitHub/waiting_times_LA/Data/Raw_Data/2010/csvs/xl_list.csv")
 
 
 for (i in 1:18) {
