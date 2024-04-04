@@ -130,4 +130,46 @@ df_incomplete <- df_incomplete %>%dplyr::filter(Treatment.Function=="Total")%>%
 df_2010 <- rbind(df_incomplete, df_admitted, df_non_admitted)
 
 
+matrix_lookup <- read.csv("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/look_ups/PCT_CCG_matrix.csv")
+
+matrix_lookup[matrix_lookup=='0%'] <- NA
+
+matrix_lookup <-matrix_lookup %>% 
+  pivot_longer(
+    cols = !PCT_Code, 
+    names_to = "CCG_Code", 
+    values_to = "lookup"
+  )
+
+matrix_lookup <- matrix_lookup[complete.cases(matrix_lookup),]
+
+names(matrix_lookup)[names(matrix_lookup)=="PCT_Code"] <- "PCT.Code"
+
+matrix_lookup$CCG_Code <-  sub('.', '', matrix_lookup$CCG_Code)
+
+
+df_2010 <- merge(df_2010, matrix_lookup, by="PCT.Code", all=T)
+
+df_2010$lookup <- gsub('[[:punct:] ]+','',df_2010$lookup)
+
+df_2010$lookup <- as.numeric(df_2010$lookup)
+
+df_2010 <- df_2010 %>%
+  dplyr::mutate(Total_pathways = Total_pathways*lookup/100,
+                Total_pathways_within_18_weeks = Total_pathways_within_18_weeks*lookup/100,
+                X..within.18.weeks = X..within.18.weeks*lookup/100)%>%
+  dplyr::select(-PCT.Code,-PCT.Name,-lookup)%>%
+  dplyr::group_by(type,year,CCG_Code)%>%
+  dplyr::summarise(Total_pathways=sum(Total_pathways),
+                   Total_pathways_within_18_weeks = sum(Total_pathways_within_18_weeks),
+                   X..within.18.weeks = sum(X..within.18.weeks))%>%
+  dplyr::ungroup()
+
+merged <- aggregate(.~CCG_Code+year, data=merged[c("CCG_Code", "year", "Allocation_000s")], sum)
+
+df <- rbind(merged, allocation_data_CCG[c("CCG_Code", "year", "Allocation_000s")])
+
+df <- df %>% dplyr::group_by(CCG_Code) %>% mutate(nobs = n())
+
+
 
