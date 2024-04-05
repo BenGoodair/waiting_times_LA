@@ -150,26 +150,53 @@ matrix_lookup$CCG_Code <-  sub('.', '', matrix_lookup$CCG_Code)
 
 df_2010 <- merge(df_2010, matrix_lookup, by="PCT.Code", all=T)
 
+
 df_2010$lookup <- gsub('[[:punct:] ]+','',df_2010$lookup)
 
 df_2010$lookup <- as.numeric(df_2010$lookup)
 
+er <- df_2010 %>% dplyr::select(CCG_Code,lookup) %>%
+  dplyr::distinct()%>%
+  dplyr::group_by(CCG_Code)%>%
+  dplyr::summarise(lookup=sum(as.numeric(lookup)))
+
+
 df_2010 <- df_2010 %>%
-  dplyr::mutate(Total_pathways = Total_pathways*lookup/100,
-                Total_pathways_within_18_weeks = Total_pathways_within_18_weeks*lookup/100,
-                X..within.18.weeks = X..within.18.weeks*lookup/100)%>%
+  dplyr::mutate(Total_pathways = Total_pathways*(lookup/100),
+                Total_pathways_within_18_weeks = Total_pathways_within_18_weeks*(lookup/100),
+                X..within.18.weeks = X..within.18.weeks*(lookup/100))%>%
   dplyr::select(-PCT.Code,-PCT.Name,-lookup)%>%
   dplyr::group_by(type,year,CCG_Code)%>%
   dplyr::summarise(Total_pathways=sum(Total_pathways),
                    Total_pathways_within_18_weeks = sum(Total_pathways_within_18_weeks),
                    X..within.18.weeks = sum(X..within.18.weeks))%>%
-  dplyr::ungroup()
+  dplyr::ungroup()%>%
+  dplyr::filter(!is.na(Total_pathways))
 
-merged <- aggregate(.~CCG_Code+year, data=merged[c("CCG_Code", "year", "Allocation_000s")], sum)
 
-df <- rbind(merged, allocation_data_CCG[c("CCG_Code", "year", "Allocation_000s")])
+la_lookup <- read.csv("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/look_ups/LSOAtoCCGtoLAD19.csv")
 
-df <- df %>% dplyr::group_by(CCG_Code) %>% mutate(nobs = n())
+
+la_lookup <- la_lookup%>%dplyr::select(CCG19CDH, LAD19CD, LAD19NM)%>%
+  dplyr::rename(CCG_Code = CCG19CDH)%>%
+  dplyr::distinct()
+
+df_2010 <- merge(df_2010, la_lookup, by= "CCG_Code",all=T)
+
+df_2010 <- df2010 %>%
+
+benefits_sum_year <- benefits_sum_year %>%dplyr::select(CCG_Name, year,  deflated_per_person_benefits)
+
+benefits_sum_year$CCG_Name <-  gsub('&','and',benefits_sum_year$CCG_Name)
+benefits_sum_year$CCG_Name <-  gsub('[[:punct:] ]+',' ',benefits_sum_year$CCG_Name)
+benefits_sum_year$CCG_Name <-  gsub('NHS ','',benefits_sum_year$CCG_Name)
+benefits_sum_year$CCG_Name <-  gsub('CCG','',benefits_sum_year$CCG_Name)
+benefits_sum_year$CCG_Name <-  str_trim(benefits_sum_year$CCG_Name)
+benefits_sum_year$CCG_Name <-  toupper(benefits_sum_year$CCG_Name)
+
+benefits_sum_year <- aggregate(.~CCG_Name+year,data=benefits_sum_year, mean)
+
+
 
 
 
