@@ -207,13 +207,15 @@ df_2010 <- merge(df_2010, la_lookup, by= "CCG_Code",all=T)
 
 
 
-df_2010 <- df_2010 %>% dplyr::select(LAD19CD, LAD19NM, X..within.18.weeks, Total_pathways,Total_pathways_within_18_weeks)%>%
-  dplyr::group_by(LAD19CD, LAD19NM)%>%
+df_2010 <- df_2010 %>% dplyr::select(LAD19CD, LAD19NM,type, X..within.18.weeks, Total_pathways,Total_pathways_within_18_weeks)%>%
+  dplyr::group_by(LAD19CD, LAD19NM,type)%>%
   dplyr::summarise(X..within.18.weeks = mean(X..within.18.weeks, na.rm=T),
-                   Total_pathways_within_18_weeks = mean(Total_pathways_within_18_weeks, na.rm=T),
-                   Total_pathways = mean(Total_pathways, na.rm=T))%>%
+                   Total_pathways_within_18_weeks = sum(Total_pathways_within_18_weeks, na.rm=T),
+                   Total_pathways = sum(Total_pathways, na.rm=T))%>%
   dplyr::ungroup()%>%
-  dplyr::mutate(election_year=2010)
+  dplyr::mutate(election_year=2010)%>%
+  dplyr::filter(!is.na(type))
+
 
 
 #####2015#####
@@ -325,14 +327,17 @@ df_2015 <- merge(df_2015, la_lookup, by= "CCG.Code",all=T)
 
 
 
-df_2015 <- df_2015 %>% dplyr::select(LAD19CD, LAD19NM, X..within.18.weeks, Total_pathways,Total_pathways_within_18_weeks,Average..median..waiting.time..in.weeks.)%>%
-  dplyr::group_by(LAD19CD, LAD19NM)%>%
+df_2015 <- df_2015 %>% dplyr::select(LAD19CD, LAD19NM,type, X..within.18.weeks, Total_pathways,Total_pathways_within_18_weeks,Average..median..waiting.time..in.weeks.)%>%
+  dplyr::group_by(LAD19CD, LAD19NM,type)%>%
   dplyr::summarise(X..within.18.weeks = mean(X..within.18.weeks, na.rm=T),
-                   Total_pathways_within_18_weeks = mean(Total_pathways_within_18_weeks, na.rm=T),
-                   Total_pathways = mean(Total_pathways, na.rm=T),
+                   Total_pathways_within_18_weeks = sum(Total_pathways_within_18_weeks, na.rm=T),
+                   Total_pathways = sum(Total_pathways, na.rm=T),
                    Average..median..waiting.time..in.weeks. = mean(Average..median..waiting.time..in.weeks., na.rm=T))%>%
   dplyr::ungroup()%>%
-  dplyr::mutate(election_year=2015)
+  dplyr::mutate(election_year=2015)%>%
+  dplyr::filter(!is.na(type))%>%
+  dplyr::select(-Average..median..waiting.time..in.weeks.)
+
 
 
 
@@ -340,46 +345,179 @@ df_2015 <- df_2015 %>% dplyr::select(LAD19CD, LAD19NM, X..within.18.weeks, Total
 
 
 df_2017 <- rbind(
-  read.csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20May17%20revised.csv"), skip=2),
-  read.csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20Apr17%20revised.csv"), skip=2),
-  read.csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20Mar17%20revised.csv"), skip=2),
-  read.csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20Feb17%20revised.csv"), skip=2),
-  read.csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20Jan17%20revised.csv"), skip=2),
-  read.csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20Jun17%20revised.csv"), skip=2),
-  
-  )%>%
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20May17%20revised.csv"), skip=2),
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20Apr17%20revised.csv"), skip=2),
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20Mar17%20revised.csv"), skip=2),
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20Feb17%20revised.csv"), skip=2),
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20Jan17%20revised.csv"), skip=2),
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2017/18wksRTT%20-%20Monthly%20EXTRACTS%20-%20Jun17%20revised.csv"), skip=2)
+  )
+
+df_2017$within18 <- (as.numeric(df_2017$`Gt 00 To 01 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 01 To 02 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 02 To 03 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 03 To 04 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 04 To 05 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 05 To 06 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 06 To 07 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 07 To 08 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 08 To 09 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 09 To 10 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 10 To 11 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 11 To 12 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 12 To 13 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 13 To 14 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 14 To 15 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 15 To 16 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 16 To 17 Weeks SUM 1`)+
+                         as.numeric(df_2017$`Gt 17 To 18 Weeks SUM 1`))
+
+df_2017 <- df_2017%>%
   dplyr::select(`Commissioner Org Code`, `Commissioner Org Name`,`RTT Part Description`, 
-                `Treatment Function Name`,  )%>%
-  dplyr::filter(RTT Part Description=="Total")%>%
-  
+                `Treatment Function Name`,`Total All`, within18, `Patients with unknown clock start date`  )%>%
+  dplyr::mutate(`Patients with unknown clock start date` = ifelse(is.na(`Patients with unknown clock start date`), 0 , `Patients with unknown clock start date`),
+                Total = `Total All`-`Patients with unknown clock start date`)%>%
+  dplyr::filter(`Treatment Function Name`=="Total")%>%
+  dplyr::group_by(`Commissioner Org Code`, `Commissioner Org Name`,`RTT Part Description`, 
+                  `Treatment Function Name`)%>%
+  dplyr::summarise(Total = sum(Total, na.rm=T),
+                   within18 = sum(within18, na.rm=T))%>%
+  dplyr::ungroup()%>%
+  dplyr::rename(Total_pathways_within_18_weeks = within18,
+                Total_pathways= Total,
+                CCG.Code = `Commissioner Org Code`,
+                type = `RTT Part Description`)%>%
+  dplyr::mutate(X..within.18.weeks = Total_pathways_within_18_weeks/Total_pathways,
+                election_year=2017)
+
+
+
+la_lookup <- read.csv("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/look_ups/LSOAtoCCGtoLAD19.csv")
+
+
+la_lookup <- la_lookup%>%dplyr::select(CCG19CDH, LAD19CD, LAD19NM)%>%
+  dplyr::rename(CCG.Code = CCG19CDH)%>%
+  dplyr::distinct()
+
+df_2017 <- merge(df_2017, la_lookup, by= "CCG.Code",all=T)
+
+
+
+
+df_2017 <- df_2017 %>% dplyr::select(LAD19CD, LAD19NM,type, X..within.18.weeks, Total_pathways,Total_pathways_within_18_weeks)%>%
+  dplyr::group_by(LAD19CD, LAD19NM,type)%>%
+  dplyr::summarise(X..within.18.weeks = mean(X..within.18.weeks, na.rm=T),
+                   Total_pathways_within_18_weeks = sum(Total_pathways_within_18_weeks, na.rm=T),
+                   Total_pathways = sum(Total_pathways, na.rm=T))%>%
+  dplyr::ungroup()%>%
+  dplyr::mutate(election_year=2017,
+                type = ifelse(type=="Incomplete Pathways", "incomplete",
+                              ifelse(type=="Completed Pathways For Admitted Patients", "admitted",
+                                     ifelse(type=="Completed Pathways For Non-Admitted Patients", "non_admitted",
+                                            NA))))%>%
+  dplyr::filter(!is.na(type))
+
+
+####2019####
+
+
+df_2019 <- rbind(
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2019/RTT-SEPTEMBER-2019-full-extract.csv")),
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2019/20191130-RTT-NOVEMBER-2019-full-extract-revised.csv")),
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2019/RTT-AUGUST-2019-full-extract-revised.csv")),
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2019/20191231-RTT-DECEMBER-2019-full-extract-revised.csv")),
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2019/RTT-JULY-2019-full-extract-revised.csv")),
+  read_csv(curl("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/Raw_Data/2019/RTT-SEPTEMBER-2019-full-extract.csv"))
+)
+
+
+df_2019$within18 <- (as.numeric(df_2019$`Gt 00 To 01 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 01 To 02 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 02 To 03 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 03 To 04 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 04 To 05 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 05 To 06 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 06 To 07 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 07 To 08 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 08 To 09 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 09 To 10 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 10 To 11 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 11 To 12 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 12 To 13 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 13 To 14 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 14 To 15 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 15 To 16 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 16 To 17 Weeks SUM 1`)+
+                       as.numeric(df_2019$`Gt 17 To 18 Weeks SUM 1`))
 
 
 
 
 
+df_2019 <- df_2019%>%
+  dplyr::select(`Commissioner Org Code`, `Commissioner Org Name`,`RTT Part Description`, 
+                `Treatment Function Name`,`Total All`, within18, `Patients with unknown clock start date`  )%>%
+  dplyr::mutate(`Patients with unknown clock start date` = ifelse(is.na(`Patients with unknown clock start date`), 0 , `Patients with unknown clock start date`),
+                Total = `Total All`-`Patients with unknown clock start date`)%>%
+  dplyr::filter(`Treatment Function Name`=="Total")%>%
+  dplyr::group_by(`Commissioner Org Code`, `Commissioner Org Name`,`RTT Part Description`, 
+                  `Treatment Function Name`)%>%
+  dplyr::summarise(Total = sum(Total, na.rm=T),
+                   within18 = sum(within18, na.rm=T))%>%
+  dplyr::ungroup()%>%
+  dplyr::rename(Total_pathways_within_18_weeks = within18,
+                Total_pathways= Total,
+                CCG.Code = `Commissioner Org Code`,
+                type = `RTT Part Description`)%>%
+  dplyr::mutate(X..within.18.weeks = Total_pathways_within_18_weeks/Total_pathways,
+                election_year=2019)
 
 
 
 
+la_lookup <- read.csv("https://raw.githubusercontent.com/BenGoodair/waiting_times_LA/main/Data/look_ups/LSOAtoCCGtoLAD19.csv")
+
+
+la_lookup <- la_lookup%>%dplyr::select(CCG19CDH, LAD19CD, LAD19NM)%>%
+  dplyr::rename(CCG.Code = CCG19CDH)%>%
+  dplyr::distinct()
+
+df_2019 <- merge(df_2019, la_lookup, by= "CCG.Code",all=T)
 
 
 
 
+df_2019 <- df_2019 %>% dplyr::select(LAD19CD, LAD19NM,type, X..within.18.weeks, Total_pathways,Total_pathways_within_18_weeks)%>%
+  dplyr::group_by(LAD19CD, LAD19NM,type)%>%
+  dplyr::summarise(X..within.18.weeks = mean(X..within.18.weeks, na.rm=T),
+                   Total_pathways_within_18_weeks = sum(Total_pathways_within_18_weeks, na.rm=T),
+                   Total_pathways = sum(Total_pathways, na.rm=T))%>%
+  dplyr::ungroup()%>%
+  dplyr::mutate(election_year=2019,
+                type = ifelse(type=="Incomplete Pathways", "incomplete",
+                              ifelse(type=="Completed Pathways For Admitted Patients", "admitted",
+                                     ifelse(type=="Completed Pathways For Non-Admitted Patients", "non_admitted",
+                                            NA))))%>%
+  dplyr::filter(!is.na(type))
 
 
 
-benefits_sum_year <- benefits_sum_year %>%dplyr::select(CCG_Name, year,  deflated_per_person_benefits)
-
-benefits_sum_year$CCG_Name <-  gsub('&','and',benefits_sum_year$CCG_Name)
-benefits_sum_year$CCG_Name <-  gsub('[[:punct:] ]+',' ',benefits_sum_year$CCG_Name)
-benefits_sum_year$CCG_Name <-  gsub('NHS ','',benefits_sum_year$CCG_Name)
-benefits_sum_year$CCG_Name <-  gsub('CCG','',benefits_sum_year$CCG_Name)
-benefits_sum_year$CCG_Name <-  str_trim(benefits_sum_year$CCG_Name)
-benefits_sum_year$CCG_Name <-  toupper(benefits_sum_year$CCG_Name)
-
-benefits_sum_year <- aggregate(.~CCG_Name+year,data=benefits_sum_year, mean)
+df_final <- rbind(df_2010, df_2015, df_2017, df_2019)
 
 
+
+df_final$LAD19NM <-  gsub('&','and',df_final$LAD19NM)
+df_final$LAD19NM <-  gsub('[[:punct:] ]+',' ',df_final$LAD19NM)
+df_final$LAD19NM <-  gsub(' UA','',df_final$LAD19NM)
+df_final$LAD19NM <-  gsub(' BC','',df_final$LAD19NM)
+df_final$LAD19NM <-  gsub(' CC','',df_final$LAD19NM)
+df_final$LAD19NM <-  gsub(' DC','',df_final$LAD19NM)
+df_final$LAD19NM <-  gsub(' MBC','',df_final$LAD19NM)
+df_final$LAD19NM <-  str_trim(df_final$LAD19NM)
+df_final$LAD19NM <-  toupper(df_final$LAD19NM)
+
+
+write.csv(df_final, "C:/Users/benjamin.goodair/OneDrive - Nexus365/Documents/GitHub/waiting_times_LA/Data/output/cleaned_waiting_times.csv")
 
 
 
